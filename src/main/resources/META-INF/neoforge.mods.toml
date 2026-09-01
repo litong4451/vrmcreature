@@ -1,0 +1,10 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+issueTrackerURL = ""
+
+[[mods]]
+modId = "vrmcreature"
+version = "1.0.0"
+displayName = "VRM Creature"
+description = '''Loads VRM models as fully configurable mobs: natural spawn on/off, neutral/friendly/hostile, and adjustable basic attributes.'''
