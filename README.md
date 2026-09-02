@@ -1,81 +1,88 @@
----
-AIGC:
-    Label: "1"
-    ContentProducer: 001191440300708461136T1XGW3
-    ProduceID: 5b393a90ab977a878df81f78a13f4437_6ba7418da4c311f1abe1525400e6dd8f
-    ReservedCode1: aVc9kZdP0daqK2MKbeXT4CAKq9GXkGeL4+IberKE1GIJv7CGGrek0YO2ycJUgGiT3KauJc3ur88WigR6G3YpRMm6/ZirzBNup9T6AT1EtroQ0TLDJQEsB47np/y9g1UBerHVb/j1tpIotNqpTW+Jefdv2gD5vgnwdg9JO4kRL7AIJiLOqp2hwMzFaqU=
-    ContentPropagator: 001191440300708461136T1XGW3
-    PropagateID: 5b393a90ab977a878df81f78a13f4437_6ba7418da4c311f1abe1525400e6dd8f
-    ReservedCode2: aVc9kZdP0daqK2MKbeXT4CAKq9GXkGeL4+IberKE1GIJv7CGGrek0YO2ycJUgGiT3KauJc3ur88WigR6G3YpRMm6/ZirzBNup9T6AT1EtroQ0TLDJQEsB47np/y9g1UBerHVb/j1tpIotNqpTW+Jefdv2gD5vgnwdg9JO4kRL7AIJiLOqp2hwMzFaqU=
----
+# VRM Creature
 
-# VRM Creature 使用说明（NeoForge 1.21.1）
+把你的 VRM 模型变成《我的世界》里的生物！
 
-## 一、功能概览
-- 加载自定义 VRM 模型作为可生成生物
-- 可配置：自然刷新开关 / 中立 / 我方 / 敌方
-- 可配置：生命值、攻击力、移动速度、刷新权重、刷新数量
+在 Minecraft 中加载自定义 VRM 模型并生成可互动的生物：阵营（敌方 / 中立 / 我方）、生命值、攻击力、移动速度、刷新数量全部可以在游戏内设置。
 
-## 二、构建环境
-- JDK 21（64 位）
-- IntelliJ IDEA（Community 版即可）
+**支持版本：Minecraft 1.21.1 + NeoForge 21.1.x**
 
-## 三、导入与构建
-1. IDEA 直接打开本目录（VRMCreature），等待 Gradle 同步完成（首次较慢）。
-2. 运行 `runClient` 启动测试客户端。
+## 功能特性
 
-## 四、放置 VRM 模型
-将你的 `.vrm` 文件重命名为 `model.vrm`，放到：
+- 加载任意 VRM 模型，兼容 **VRM 0.x** 与 **VRM 2.0（VRMC_vrm）** 格式
+- 自然刷新开关：可选择是否在世界中自然生成
+- 阵营可切换：敌方（主动攻击）/ 中立（被打才反击）/ 我方（与玩家友好）
+- 属性可配置：生命值、攻击力、移动速度、刷新权重与数量
+- 游戏内设置界面，无需手动改配置文件
+
+## 安装方法
+
+1. 安装 NeoForge 21.1.x（对应 Minecraft 1.21.1）
+2. 从本仓库的 **Releases** 页面下载最新版 `vrmcreature-1.0.0.jar`
+3. 把 jar 文件放进游戏目录下的 `mods` 文件夹
+4. 启动游戏，模组自动生效
+
+## 使用方法
+
+### 第一步：绑定快捷键
+
+本模组的设置界面**默认不绑定任何按键**（避免与其他模组冲突）。进入游戏后：
+
+1. 打开 **选项 → 控制**
+2. 找到「VRM 生物」分类
+3. 为「打开 VRM 生物设置」指定一个键（例如 `V`）
+
+### 第二步：生成生物
+
+1. 按刚才设置的快捷键，打开「VRM 生物设置」界面
+2. 选择阵营：敌方 / 中立 / 我方
+3. 调整生命值、攻击力、移动速度、生成数量
+4. 点击「现在生成」并确认，生物立即在当前世界生成
+5. 设置会自动保存，之后的自然刷新同样按此配置生效
+
+> 小贴士：也可以直接用命令生成：`/summon vrmcreature:vrm_mob`
+
+## 更换你自己的模型
+
+模组从资源路径 `assets/vrmcreature/vrm/model.vrm` 读取模型（VRM / GLB 格式）。模型**不是内置**的，请用「资源包」方式提供：
+
+1. 新建一个文件夹，在里面创建 `assets/vrmcreature/vrm/` 目录
+2. 把你的 `.vrm` 文件重命名为 `model.vrm`，放进该目录
+3. 在文件夹根部创建 `pack.mcmeta`，内容如下：
+
+```json
+{ "pack": { "description": "VRM Creature model", "pack_format": 15 } }
 ```
-src/main/resources/assets/vrmcreature/vrm/model.vrm
-```
 
-> 兼容说明：
-> - 同时支持 **VRM 0.x（VRM 1.0）** 与 **VRM 2.0（VRMC_vrm）** 格式，
->   加载器会自动识别版本（读取扩展名 `VRM` / `VRMC_vrm`）。
-> - 网格、骨骼蒙皮、动画片段均从模型内解析，无需额外准备贴图——
->   基础色贴图优先从模型内提取（VRM 0.x 的 MToon `materialProperties`、
->   VRM 2.0 的标准 `baseColorTexture` 均已兼容），自动注册为动态纹理。
-> - 若模型内无内嵌贴图，才会回退使用
->   `src/main/resources/assets/vrmcreature/textures/vrm/model.png`（可选）。
-> - 加载日志会打印版本信息，如 `version=VRM 2.0`。
+4. 把整个文件夹打包成 zip（保留目录结构），放入 `.minecraft/resourcepacks/`
+5. 游戏中打开 **选项 → 资源包**，启用你刚添加的资源包
 
-## 五、配置（游戏内自动生成 config/vrmcreature-common.toml）
+> 兼容格式：VRM 0.x、VRM 2.0（VRMC_vrm）、标准 glTF（.glb）。
+> 基础色贴图会自动从模型内提取并应用，无需额外准备贴图文件。
+
+## 配置说明
+
+配置文件位于游戏目录 `config/vrmcreature-common.toml`，游戏内设置界面会自动修改它：
+
 | 配置项 | 说明 |
 |---|---|
-| canSpawn | 是否允许自然刷新 |
-| isNeutral | 中立阵营（不主动攻击，被打后反击） |
-| isFriendly | 我方阵营（与玩家友好） |
-| maxHealth | 最大生命值 |
-| attackDamage | 攻击伤害 |
-| movementSpeed | 移动速度 |
-| spawnWeight | 自然刷新权重 |
-| spawnMinGroup / spawnMaxGroup | 单次刷新数量范围 |
+| `canSpawn` | 是否允许自然刷新（true / false） |
+| `isFriendly` | 我方阵营（与玩家友好） |
+| `isNeutral` | 中立阵营（不主动攻击，被打后反击） |
+| `maxHealth` | 最大生命值 |
+| `attackDamage` | 攻击伤害 |
+| `movementSpeed` | 移动速度 |
+| `spawnWeight` | 自然刷新权重（越大越容易刷出） |
+| `spawnMinGroup` / `spawnMaxGroup` | 单次刷新数量范围 |
 
-> 阵营判定优先级：isFriendly=true → 我方；isNeutral=true → 中立；
-> 两者都 false → 敌方（主动攻击玩家）。
+阵营判定优先级：`isFriendly=true` → 我方；否则 `isNeutral=true` → 中立；两者都关闭 → 敌方（主动攻击玩家）。
 
-## 六、游戏内设置界面与「现在生成」
-按快捷键打开设置界面。**默认不绑定任何按键**（避免与其他模组/操作冲突），请到 设置 → 控制 → VRM 生物 →「打开 VRM 生物设置」自行指定一个键：
-```
-（设置中自定义按键，例如 V）
-```
-界面功能：
-- 切换阵营：敌方 / 中立 / 我方
-- 调整属性：生命值、攻击力、速度
-- 调整生成数量
-- 点「现在生成」→ 弹出确认框「是否现在生成？」→ 确认后按当前配置立即生成，
-  并把设置写入配置文件（影响后续自然刷新）
+## 常见问题
 
-## 七、召唤测试
-开发环境下可执行命令生成实体：
-```
-/summon vrmcreature:vrm_mob
-```
+- **生物没有模型 / 显示空白？** 模型不是内置的，请按「更换你自己的模型」用资源包提供 `model.vrm`。
+- **按键没反应？** 设置界面默认未绑定按键，请到 **选项 → 控制 → VRM 生物** 里手动指定。
+- **支持哪些模型？** VRM 0.x、VRM 2.0 以及 glTF（.glb），贴图自动提取。
+- **服务器能用吗？** 模组同时提供服务端与客户端支持，生成逻辑运行在服务端。
 
-## 八、打包发布
-```
-gradlew build
-```
-产物在 `build/libs/` 下。
-*（内容由AI生成，仅供参考）*
+## 开源协议
+
+MIT License
