@@ -1,7 +1,7 @@
 plugins {
     id 'java-library'
     id 'idea'
-    id 'net.neoforged.gradle.userdev' version '7.0.171'
+    id 'net.neoforged.moddev' version '2.0.89'
 }
 
 version = '1.0.0'
@@ -18,7 +18,6 @@ repositories {
 }
 
 dependencies {
-    implementation 'net.neoforged:neoforge:21.1.1'
     // glTF 解析库，用于读取 VRM(.glb) 的网格/顶点数据
     implementation 'de.javagl:jgltf-model:2.0.4'
 }
