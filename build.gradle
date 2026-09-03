@@ -18,7 +18,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'net.neoforged:neoforge:21.1.0'
+    implementation 'net.neoforged:neoforge:21.1.1'
     // glTF 解析库，用于读取 VRM(.glb) 的网格/顶点数据
     implementation 'de.javagl:jgltf-model:2.0.4'
 }
