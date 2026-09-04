@@ -26,7 +26,7 @@ import java.util.Map;
 
 /**
  * VRM 生物渲染器：播放骨骼动画并渲染蒙皮网格。
- * 支持多模型：按实体的 modelName 从 assets/vrmcreature/vrm/ 目录懒加载对应模型，
+ * 支持多模型：按实体的 modelName 从 <游戏目录>/version/<版本名>/vrmcreature/vrm/ 目录懒加载对应模型，
  * 每个模型独立缓存（模型数据 + 动画器 + 内嵌贴图），首次使用时才加载。
  * 动画自动选择：移动→walk/run，攻击→attack，否则→idle（或动作偏好）。
  * 纹理优先使用模型内嵌贴图（VRM 0.x/2.0），无内嵌贴图时回退默认 model.png。

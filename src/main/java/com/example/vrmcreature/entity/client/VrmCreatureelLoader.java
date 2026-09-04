@@ -4,9 +4,6 @@ import com.example.vrmcreature.VrmCreature;
 import de.javagl.jgltf.model.*;
 import de.javagl.jgltf.model.io.GltfModelReader;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.Resource;
-import net.minecraft.server.packs.resources.ResourceManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,59 +13,69 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
- * VRM 模型加载器：通过 jgltf 解析资源包中的 .vrm/.glb 文件。
+ * VRM 模型加载器：通过 jgltf 解析模型目录中的 .vrm/.glb 文件。
  * 提取：网格顶点、节点层级、骨骼蒙皮、动画片段。
- * 模型需放置于：assets/vrmcreature/vrm/ 目录下，支持多个模型，
- * 每个模型一个文件（文件名必须为英文字母，扩展名 .vrm 或 .glb）。
+ * 模型目录：<游戏根目录>/version/<版本名>/vrmcreature/vrm/
+ * 例如：.minecraft/version/1.21.1/vrmcreature/vrm/alice.vrm
+ * 支持多个模型，每个模型一个文件（文件名使用英文字母，扩展名 .vrm 或 .glb）。
  */
 public class VrmCreatureelLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger("VRMCreature");
-    /** 模型存放目录（相对 assets/<modid>/） */
-    public static final String VRM_DIR = "vrm";
     private static final String DEFAULT_MODEL = "model";
 
-    /** 列出 vrm 目录下所有可用模型名（去掉扩展名，如 model.vrm -> model）。 */
+    /** 模型根目录：<游戏根目录>/version/<版本名>/vrmcreature/vrm */
+    public static Path vrmDir() {
+        Path gameDir = Minecraft.getInstance().gameDirectory.toPath();
+        String version = Minecraft.getInstance().getLaunchedVersion();
+        return gameDir.resolve("version").resolve(version)
+                .resolve(VrmCreature.MODID).resolve("vrm");
+    }
+
+    /** 列出 vrm 目录下所有可用模型名（去掉扩展名，如 alice.vrm -> alice）。 */
     public static List<String> listModelNames() {
-        ResourceManager rm = Minecraft.getInstance().getResourceManager();
         List<String> names = new ArrayList<>();
-        Predicate<ResourceLocation> filter = loc -> {
-            String path = loc.getPath();
-            return path.startsWith(VRM_DIR + "/")
-                    && (path.endsWith(".vrm") || path.endsWith(".glb"));
-        };
-        for (ResourceLocation loc : rm.listResources(VRM_DIR, filter).keySet()) {
-            String path = loc.getPath(); // vrm/<name>.vrm
-            String file = path.substring(path.lastIndexOf('/') + 1);
-            String name = file.substring(0, file.lastIndexOf('.'));
-            if (!name.isEmpty()) {
-                names.add(name);
-            }
+        Path dir = vrmDir();
+        if (!Files.isDirectory(dir)) {
+            return names;
+        }
+        try (Stream<Path> stream = Files.list(dir)) {
+            stream.filter(p -> {
+                        String fn = p.getFileName().toString().toLowerCase();
+                        return fn.endsWith(".vrm") || fn.endsWith(".glb");
+                    })
+                    .forEach(p -> {
+                        String fn = p.getFileName().toString();
+                        String name = fn.substring(0, fn.lastIndexOf('.'));
+                        if (!name.isEmpty()) names.add(name);
+                    });
+        } catch (IOException e) {
+            LOGGER.warn("Failed to list VRM models in {}", dir, e);
         }
         names.sort(Comparator.naturalOrder());
         return names;
     }
 
-    /** 将模型名解析为资源路径：优先 .vrm，其次 .glb。 */
-    public static ResourceLocation modelLocation(String name) {
+    /** 将模型名解析为模型文件路径：优先 .vrm，其次 .glb。 */
+    public static Path modelPath(String name) {
         if (name == null || name.isEmpty()) {
             name = DEFAULT_MODEL;
         }
-        ResourceManager rm = Minecraft.getInstance().getResourceManager();
-        ResourceLocation vrmLoc =
-                ResourceLocation.fromNamespaceAndPath(VrmCreature.MODID, VRM_DIR + "/" + name + ".vrm");
-        if (rm.getResource(vrmLoc).isPresent()) {
-            return vrmLoc;
+        Path dir = vrmDir();
+        Path vrm = dir.resolve(name + ".vrm");
+        if (Files.isRegularFile(vrm)) {
+            return vrm;
         }
-        return ResourceLocation.fromNamespaceAndPath(VrmCreature.MODID, VRM_DIR + "/" + name + ".glb");
+        return dir.resolve(name + ".glb");
     }
 
     /**
@@ -87,18 +94,16 @@ public class VrmCreatureelLoader {
                 name = DEFAULT_MODEL;
             }
         }
-        return load(modelLocation(name));
+        return load(modelPath(name));
     }
 
-    public static VrmCreatureel load(ResourceLocation location) {
-        ResourceManager rm = Minecraft.getInstance().getResourceManager();
-        Optional<Resource> resource = rm.getResource(location);
-        if (resource.isEmpty()) {
-            LOGGER.warn("VRM model not found: {}", location);
+    public static VrmCreatureel load(Path path) {
+        if (!Files.isRegularFile(path)) {
+            LOGGER.warn("VRM model not found: {}", path);
             return new VrmCreatureel(0);
         }
 
-        try (InputStream in = resource.get().open()) {
+        try (InputStream in = Files.newInputStream(path)) {
             GltfModel gltf = new GltfModelReader().read(in);
 
             // 0) 检测 VRM 版本（1.0 扩展名 "VRM"，2.0 扩展名 "VRMC_vrm"）
@@ -261,11 +266,11 @@ public class VrmCreatureelLoader {
             model.textureBytes = extractTextureBytes(gltf);
 
             LOGGER.info("Loaded VRM '{}' version={} meshes={} nodes={} joints={} anims={} tex={}",
-                    location, model.vrmVersion, model.meshes.size(), model.nodes.size(), model.skinJoints.size(), model.animations.size(),
+                    path, model.vrmVersion, model.meshes.size(), model.nodes.size(), model.skinJoints.size(), model.animations.size(),
                     model.textureBytes != null ? model.textureBytes.length + "B" : "none");
             return model;
         } catch (IOException | RuntimeException e) {
-            LOGGER.error("Failed to load VRM model '{}'", location, e);
+            LOGGER.error("Failed to load VRM model '{}'", path, e);
             return new VrmCreatureel(0);
         }
     }

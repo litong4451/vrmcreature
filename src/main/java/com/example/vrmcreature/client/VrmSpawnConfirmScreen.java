@@ -17,7 +17,7 @@ import java.util.Set;
  * 「是否现在生成」确认弹窗。
  * - 可调整生成数量（默认 1）
  * - 支持多选模型：可勾选多个模型，生成 count 只生物时按所选模型循环分配
- * 模型来源：assets/vrmcreature/vrm/ 目录下所有 .vrm/.glb 文件（自动扫描）。
+ * 模型来源：<游戏目录>/version/<版本名>/vrmcreature/vrm/ 目录下所有 .vrm/.glb 文件（自动扫描）。
  */
 public class VrmSpawnConfirmScreen extends Screen {
 

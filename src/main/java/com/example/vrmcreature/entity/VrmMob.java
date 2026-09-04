@@ -24,7 +24,7 @@ import net.minecraft.world.level.Level;
  */
 public class VrmMob extends Mob {
 
-    /** 模型名（对应 assets/vrmcreature/vrm/<name>.vrm 或 .glb），默认 model */
+    /** 模型名（对应 <游戏目录>/version/<版本名>/vrmcreature/vrm/<name>.vrm 或 .glb），默认 model */
     private static final EntityDataAccessor<String> DATA_MODEL_NAME =
             SynchedEntityData.defineId(VrmMob.class, EntityDataSerializers.STRING);
 
