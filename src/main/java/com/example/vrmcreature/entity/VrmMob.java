@@ -1,6 +1,10 @@
 package com.example.vrmcreature.entity;
 
 import com.example.vrmcreature.config.VrmCreatureConfig;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -20,8 +24,42 @@ import net.minecraft.world.level.Level;
  */
 public class VrmMob extends Mob {
 
+    /** 模型名（对应 assets/vrmcreature/vrm/<name>.vrm 或 .glb），默认 model */
+    private static final EntityDataAccessor<String> DATA_MODEL_NAME =
+            SynchedEntityData.defineId(VrmMob.class, EntityDataSerializers.STRING);
+
     public VrmMob(EntityType<? extends VrmMob> type, Level level) {
         super(type, level);
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(DATA_MODEL_NAME, "model");
+    }
+
+    public String getModelName() {
+        return this.entityData.get(DATA_MODEL_NAME);
+    }
+
+    public void setModelName(String name) {
+        if (name != null && !name.isEmpty()) {
+            this.entityData.set(DATA_MODEL_NAME, name);
+        }
+    }
+
+    @Override
+    public void addAdditionalSaveData(CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        tag.putString("ModelName", getModelName());
+    }
+
+    @Override
+    public void readAdditionalSaveData(CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        if (tag.contains("ModelName")) {
+            setModelName(tag.getString("ModelName"));
+        }
     }
 
     public static AttributeSupplier.Builder createAttributes() {

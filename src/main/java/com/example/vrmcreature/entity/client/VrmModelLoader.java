@@ -1,5 +1,6 @@
 package com.example.vrmcreature.entity.client;
 
+import com.example.vrmcreature.VrmCreature;
 import de.javagl.jgltf.model.*;
 import de.javagl.jgltf.model.io.GltfModelReader;
 import net.minecraft.client.Minecraft;
@@ -15,18 +16,79 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 /**
  * VRM 模型加载器：通过 jgltf 解析资源包中的 .vrm/.glb 文件。
  * 提取：网格顶点、节点层级、骨骼蒙皮、动画片段。
- * 模型需放置于：assets/vrmcreature/vrm/ 目录下。
+ * 模型需放置于：assets/vrmcreature/vrm/ 目录下，支持多个模型，
+ * 每个模型一个文件（文件名必须为英文字母，扩展名 .vrm 或 .glb）。
  */
 public class VrmCreatureelLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger("VRMCreature");
+    /** 模型存放目录（相对 assets/<modid>/） */
+    public static final String VRM_DIR = "vrm";
+    private static final String DEFAULT_MODEL = "model";
+
+    /** 列出 vrm 目录下所有可用模型名（去掉扩展名，如 model.vrm -> model）。 */
+    public static List<String> listModelNames() {
+        ResourceManager rm = Minecraft.getInstance().getResourceManager();
+        List<String> names = new ArrayList<>();
+        Predicate<ResourceLocation> filter = loc -> {
+            String path = loc.getPath();
+            return path.startsWith(VRM_DIR + "/")
+                    && (path.endsWith(".vrm") || path.endsWith(".glb"));
+        };
+        for (ResourceLocation loc : rm.listResources(VRM_DIR, filter).keySet()) {
+            String path = loc.getPath(); // vrm/<name>.vrm
+            String file = path.substring(path.lastIndexOf('/') + 1);
+            String name = file.substring(0, file.lastIndexOf('.'));
+            if (!name.isEmpty()) {
+                names.add(name);
+            }
+        }
+        names.sort(Comparator.naturalOrder());
+        return names;
+    }
+
+    /** 将模型名解析为资源路径：优先 .vrm，其次 .glb。 */
+    public static ResourceLocation modelLocation(String name) {
+        if (name == null || name.isEmpty()) {
+            name = DEFAULT_MODEL;
+        }
+        ResourceManager rm = Minecraft.getInstance().getResourceManager();
+        ResourceLocation vrmLoc =
+                ResourceLocation.fromNamespaceAndPath(VrmCreature.MODID, VRM_DIR + "/" + name + ".vrm");
+        if (rm.getResource(vrmLoc).isPresent()) {
+            return vrmLoc;
+        }
+        return ResourceLocation.fromNamespaceAndPath(VrmCreature.MODID, VRM_DIR + "/" + name + ".glb");
+    }
+
+    /**
+     * 按模型名加载模型。指定模型不存在时回退到第一个可用模型；
+     * 目录为空时回退默认 "model"（即使缺失也会返回空模型，由渲染端跳过）。
+     */
+    public static VrmCreatureel loadByName(String name) {
+        if (name == null || name.isEmpty()) {
+            name = DEFAULT_MODEL;
+        }
+        List<String> names = listModelNames();
+        if (!names.contains(name)) {
+            if (!names.isEmpty()) {
+                name = names.get(0);
+            } else {
+                name = DEFAULT_MODEL;
+            }
+        }
+        return load(modelLocation(name));
+    }
 
     public static VrmCreatureel load(ResourceLocation location) {
         ResourceManager rm = Minecraft.getInstance().getResourceManager();

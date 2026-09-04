@@ -14,17 +14,22 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 客户端「现在生成」请求包。
- * 属性一律读取已锁定的配置文件，只传数量。
+ * 属性一律读取已锁定的配置文件；modelNames 为本次生成使用的一组模型文件名（不含扩展名），
+ * 生成 count 只生物时按 modelNames 循环分配模型（第 i 只用 modelNames.get(i % size)）。
  */
-public record VrmSpawnPacket(int count) implements CustomPacketPayload {
+public record VrmSpawnPacket(int count, List<String> modelNames) implements CustomPacketPayload {
 
     public static final Type<VrmSpawnPacket> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(VrmCreature.MODID, "vrm_spawn"));
 
     public static final StreamCodec<ByteBuf, VrmSpawnPacket> CODEC = StreamCodec.composite(
             ByteBufCodecs.VAR_INT, VrmSpawnPacket::count,
+            ByteBufCodecs.collection(ArrayList::new, ByteBufCodecs.STRING_UTF8), VrmSpawnPacket::modelNames,
             VrmSpawnPacket::new
     );
 
@@ -37,11 +42,15 @@ public record VrmSpawnPacket(int count) implements CustomPacketPayload {
         ctx.enqueueWork(() -> {
             if (ctx.flow().isServerbound() && ctx.player() instanceof ServerPlayer player) {
                 Level level = player.level();
+                int n = packet.modelNames == null ? 0 : packet.modelNames.size();
                 for (int i = 0; i < packet.count; i++) {
                     VrmMob mob = ModEntities.VRM_MOB.get().create(level);
                     if (mob != null) {
                         mob.moveTo(player.getX() + 0.5D, player.getY(), player.getZ() + 0.5D,
                                 player.getYRot(), 0.0F);
+                        // 按数量轮询分配模型，空列表时回退默认 model
+                        String modelName = (n > 0) ? packet.modelNames.get(i % n) : "model";
+                        mob.setModelName(modelName);
                         mob.getAttribute(Attributes.MAX_HEALTH)
                                 .setBaseValue(VrmCreatureConfig.MAX_HEALTH.get());
                         mob.setHealth((float) VrmCreatureConfig.MAX_HEALTH.get());

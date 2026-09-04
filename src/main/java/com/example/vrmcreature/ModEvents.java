@@ -30,7 +30,13 @@ public class ModEvents {
                     ModEntities.VRM_MOB.get(),
                     SpawnPlacementTypes.ON_GROUND,
                     Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
-                    (type, level, spawnType, pos, random) -> true,
+                    (type, level, spawnType, pos, random) -> {
+                        // 群系过滤：仅允许配置的群系自然刷新（空列表 = 全部）
+                        String biomeId = level.getBiome(pos).unwrapKey()
+                                .map(k -> k.location().toString())
+                                .orElse("");
+                        return VrmCreatureConfig.isBiomeAllowed(biomeId);
+                    },
                     RegisterSpawnPlacementsEvent.Operation.REPLACE);
         }
     }

@@ -2,6 +2,8 @@ package com.example.vrmcreature.config;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
 
+import java.util.List;
+
 /**
  * 模组通用配置。
  * 流程：首次「创建」时可设置阵营/属性/行为/动作 → 保存后 locked=true 永久锁定，
@@ -15,6 +17,8 @@ public class VrmCreatureConfig {
     public static final ModConfigSpec.BooleanValue LOCKED;
     // 自然刷新开关
     public static final ModConfigSpec.BooleanValue CAN_SPAWN;
+    // 允许自然刷新的群系 ID 列表（空列表表示全部群系）
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> SPAWN_BIOMES;
     // 阵营
     public static final ModConfigSpec.BooleanValue IS_NEUTRAL;
     public static final ModConfigSpec.BooleanValue IS_FRIENDLY;
@@ -38,6 +42,11 @@ public class VrmCreatureConfig {
         CAN_SPAWN = BUILDER
                 .comment("是否允许自然刷新", "Allow natural spawning")
                 .define("canSpawn", true);
+
+        SPAWN_BIOMES = BUILDER
+                .comment("允许自然刷新的群系 ID 列表，例如 [\"minecraft:plains\",\"minecraft:forest\"]；空列表表示全部群系",
+                        "Biome IDs allowed for natural spawning; empty = all biomes")
+                .defineListAllowEmpty("spawnBiomes", List.of(), e -> e instanceof String);
 
         IS_NEUTRAL = BUILDER
                 .comment("中立阵营（不主动攻击，被打后反击）")
@@ -84,6 +93,20 @@ public class VrmCreatureConfig {
         if (IS_FRIENDLY.get()) return 2;
         if (IS_NEUTRAL.get()) return 1;
         return 0;
+    }
+
+    /** 当前群系是否允许自然刷新（空列表 = 全部群系） */
+    public static boolean isBiomeAllowed(String biomeId) {
+        List<? extends String> allowed = SPAWN_BIOMES.get();
+        if (allowed.isEmpty()) {
+            return true;
+        }
+        return allowed.contains(biomeId);
+    }
+
+    /** 写入群系白名单（服务端） */
+    public static void setSpawnBiomes(List<String> biomeIds) {
+        SPAWN_BIOMES.set(biomeIds);
     }
 
     /** 首次创建保存，之后永久锁定 */

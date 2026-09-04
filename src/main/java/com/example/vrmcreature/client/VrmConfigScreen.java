@@ -59,6 +59,12 @@ public class VrmConfigScreen extends Screen {
             y = buildReadOnly(x, y, w);
         }
 
+        // 群系选择入口（两种模式均可用）
+        addRenderableWidget(Button.builder(Component.literal("选择刷新群系"), b ->
+                        Minecraft.getInstance().setScreen(new VrmBiomeSelectScreen(this)))
+                .bounds(x, y, w, 20).build());
+        y += 26;
+
         addRenderableWidget(Button.builder(Component.literal("关闭"), b -> this.onClose())
                 .bounds(x, y, w, 20).build());
     }

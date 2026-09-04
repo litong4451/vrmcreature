@@ -1,0 +1,10 @@
+{
+  "type": "neoforge:add_spawns",
+  "biomes": "#vrmcreature:vrm_mob_spawns",
+  "spawners": {
+    "type": "vrmcreature:vrm_mob",
+    "weight": 10,
+    "minCount": 1,
+    "maxCount": 3
+  }
+}
