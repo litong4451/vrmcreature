@@ -1,6 +1,7 @@
 package com.example.vrmcreature.entity.client;
 
 import com.example.vrmcreature.VrmCreature;
+import com.example.vrmcreature.api.event.VrmAnimEvent;
 import com.example.vrmcreature.entity.VrmMob;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -13,6 +14,7 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.neoforged.neoforge.common.NeoForge;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
@@ -26,7 +28,7 @@ import java.util.Map;
 
 /**
  * VRM 生物渲染器：播放骨骼动画并渲染蒙皮网格。
- * 支持多模型：按实体的 modelName 从 <游戏目录>/version/<版本名>/vrmcreature/vrm/ 目录懒加载对应模型，
+ * 支持多模型：按实体的 modelName 从 <游戏目录>/versions/<版本名>/vrmcreature/vrm/ 目录懒加载对应模型，
  * 每个模型独立缓存（模型数据 + 动画器 + 内嵌贴图），首次使用时才加载。
  * 动画自动选择：移动→walk/run，攻击→attack，否则→idle（或动作偏好）。
  * 纹理优先使用模型内嵌贴图（VRM 0.x/2.0），无内嵌贴图时回退默认 model.png。
@@ -141,7 +143,8 @@ public class VrmMobRenderer extends EntityRenderer<VrmMob> {
         boolean moving = entity.getDeltaMovement().horizontalDistanceSqr() > 1.0E-5D;
         boolean attacking = entity.swinging && entity.attackAnim > 0.0F;
 
-        String pref = switch (com.example.vrmcreature.config.VrmCreatureConfig.ANIM_PREF.get()) {
+        int animPref = com.example.vrmcreature.config.VrmModelConfig.load(entity.getModelName()).animPref;
+        String pref = switch (animPref) {
             case 1 -> "walk";
             case 2 -> "attack";
             default -> "idle";
@@ -155,7 +158,14 @@ public class VrmMobRenderer extends EntityRenderer<VrmMob> {
             if (name.contains(want)) return c;
             if (best == null && !name.isEmpty()) best = c;
         }
-        return best;
+
+        // 动作钩子：依赖方可覆盖本帧播放的动画（指定片段 / 取消默认选择）
+        VrmAnimEvent event = new VrmAnimEvent(entity, model, best);
+        if (NeoForge.EVENT_BUS.post(event)) {
+            // 已取消默认动画选择：返回监听者指定片段（可能为 null，即本帧不播放动画）
+            return event.getClip();
+        }
+        return event.getClip() != null ? event.getClip() : best;
     }
 
     private void vertex(VertexConsumer consumer, Matrix4f pose, VrmAnimator animator,

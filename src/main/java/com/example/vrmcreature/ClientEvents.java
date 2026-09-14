@@ -2,12 +2,14 @@ package com.example.vrmcreature;
 
 import com.example.vrmcreature.client.VrmConfigScreen;
 import com.example.vrmcreature.entity.ModEntities;
+import com.example.vrmcreature.entity.client.VrmCreatureelLoader;
 import com.example.vrmcreature.entity.client.VrmMobRenderer;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
@@ -27,6 +29,12 @@ public class ClientEvents {
             InputConstants.UNKNOWN.getValue(),
             "key.categories.vrmcreature"
     );
+
+    @SubscribeEvent
+    public static void onClientSetup(FMLClientSetupEvent event) {
+        // 客户端启动时自动创建模型目录，玩家可直接放入 vrm 文件
+        VrmCreatureelLoader.ensureVrmDir();
+    }
 
     @SubscribeEvent
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {

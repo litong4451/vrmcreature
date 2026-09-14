@@ -1,10 +1,31 @@
 modLoader = "javafml"
 loaderVersion = "[4,)"
 license = "MIT"
-issueTrackerURL = ""
+issueTrackerURL = "https://github.com/litong4451/vrmcreature/issues"
 
 [[mods]]
 modId = "vrmcreature"
 version = "1.0.0"
 displayName = "VRM Creature"
+authors = ["litong4451"]
+displayURL = "https://github.com/litong4451/vrmcreature"
 description = '''Loads VRM models as fully configurable mobs: natural spawn on/off, neutral/friendly/hostile, and adjustable basic attributes.'''
+
+# 对外依赖声明：外部 mod 可在自身 neoforge.mods.toml 中通过
+#   [[dependencies.<外部modId>]]
+#   modId = "vrmcreature"
+#   versionRange = "[1.0.0,)"
+# 声明依赖本模组，保证加载顺序与 API 引用（运行时由 NeoForge 自动反混淆链接）。
+[[dependencies.vrmcreature]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.21.1,1.22)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.vrmcreature]]
+modId = "neoforge"
+mandatory = true
+versionRange = "[21.1.1,)"
+ordering = "NONE"
+side = "BOTH"

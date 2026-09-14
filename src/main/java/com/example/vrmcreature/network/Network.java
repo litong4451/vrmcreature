@@ -11,6 +11,7 @@ public class Network {
         registrar.playToServer(VrmSavePacket.TYPE, VrmSavePacket.CODEC, VrmSavePacket::handle);
         registrar.playToServer(VrmSpawnPacket.TYPE, VrmSpawnPacket.CODEC, VrmSpawnPacket::handle);
         registrar.playToServer(VrmBiomePacket.TYPE, VrmBiomePacket.CODEC, VrmBiomePacket::handle);
+        registrar.playToServer(VrmLootPacket.TYPE, VrmLootPacket.CODEC, VrmLootPacket::handle);
     }
 
     /** 客户端发送数据包到服务端 */

@@ -1,9 +1,11 @@
 package com.example.vrmcreature.entity.client;
 
 import com.example.vrmcreature.VrmCreature;
+import com.example.vrmcreature.api.event.VrmModelLoadEvent;
 import de.javagl.jgltf.model.*;
 import de.javagl.jgltf.model.io.GltfModelReader;
 import net.minecraft.client.Minecraft;
+import net.neoforged.neoforge.common.NeoForge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,24 +27,35 @@ import java.util.stream.Stream;
 /**
  * VRM 模型加载器：通过 jgltf 解析模型目录中的 .vrm/.glb 文件。
  * 提取：网格顶点、节点层级、骨骼蒙皮、动画片段。
- * 模型目录：<游戏根目录>/version/<版本名>/vrmcreature/vrm/
- * 例如：.minecraft/version/1.21.1/vrmcreature/vrm/alice.vrm
+ * 模型目录：<游戏根目录>/versions/<版本名>/vrmcreature/vrm/
+ * 例如：.minecraft/versions/1.21.1/vrmcreature/vrm/alice.vrm
  * 支持多个模型，每个模型一个文件（文件名使用英文字母，扩展名 .vrm 或 .glb）。
  */
 public class VrmCreatureelLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger("VRMCreature");
     private static final String DEFAULT_MODEL = "model";
 
-    /** 模型根目录：<游戏根目录>/version/<版本名>/vrmcreature/vrm */
+    /** 模型根目录：<游戏根目录>/versions/<版本名>/vrmcreature/vrm */
     public static Path vrmDir() {
         Path gameDir = Minecraft.getInstance().gameDirectory.toPath();
         String version = Minecraft.getInstance().getLaunchedVersion();
-        return gameDir.resolve("version").resolve(version)
+        return gameDir.resolve("versions").resolve(version)
                 .resolve(VrmCreature.MODID).resolve("vrm");
+    }
+
+    /** 确保模型目录存在（不存在则自动创建），方便玩家直接放入模型文件。 */
+    public static void ensureVrmDir() {
+        Path dir = vrmDir();
+        try {
+            Files.createDirectories(dir);
+        } catch (IOException e) {
+            LOGGER.warn("Failed to create VRM model dir {}", dir, e);
+        }
     }
 
     /** 列出 vrm 目录下所有可用模型名（去掉扩展名，如 alice.vrm -> alice）。 */
     public static List<String> listModelNames() {
+        ensureVrmDir();
         List<String> names = new ArrayList<>();
         Path dir = vrmDir();
         if (!Files.isDirectory(dir)) {
@@ -94,7 +107,10 @@ public class VrmCreatureelLoader {
                 name = DEFAULT_MODEL;
             }
         }
-        return load(modelPath(name));
+        // 模型加载钩子：依赖方可修改解析后的模型数据（网格/节点/动画）再参与渲染
+        VrmCreatureel result = load(modelPath(name));
+        NeoForge.EVENT_BUS.post(new VrmModelLoadEvent(name, result));
+        return result;
     }
 
     public static VrmCreatureel load(Path path) {

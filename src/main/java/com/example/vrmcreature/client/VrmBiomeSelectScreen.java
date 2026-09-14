@@ -1,8 +1,5 @@
 package com.example.vrmcreature.client;
 
-import com.example.vrmcreature.config.VrmCreatureConfig;
-import com.example.vrmcreature.network.Network;
-import com.example.vrmcreature.network.VrmBiomePacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -19,25 +16,27 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * 「选择刷新群系」界面：列出全部生物群系，可多选。
- * - 空选择（等于全选全部）发送空列表 = 全部群系
- * - 选择部分群系时发送对应群系 ID 列表
- * 设置通过 VrmBiomePacket 同步到服务端。
+ * 「选择刷新群系」界面：列出全部生物群系，可多选（草稿模式）。
+ * 选择写入 VrmDraft.selectedBiomes，随生成包统一发送到服务端写入该模型 JSON。
+ * - 空选择（等于全选全部）在保存时转成空列表 = 全部群系
  */
 public class VrmBiomeSelectScreen extends Screen {
 
     private static final int PAGE_SIZE = 8;
 
     private final Screen parent;
+    /** 草稿模式：写入草稿而非直接发服务端 */
+    private final VrmDraft draft;
     private int page = 0;
     /** 所有群系 ID（有序，按显示名排序） */
     private final List<String> allBiomes = new ArrayList<>();
     /** 已勾选群系（保持勾选顺序） */
     private final Set<String> selected = new LinkedHashSet<>();
 
-    public VrmBiomeSelectScreen(Screen parent) {
+    public VrmBiomeSelectScreen(Screen parent, VrmDraft draft) {
         super(Component.literal("选择刷新群系"));
         this.parent = parent;
+        this.draft = draft;
 
         // 收集全部已注册生物群系
         var level = Minecraft.getInstance().level;
@@ -59,7 +58,7 @@ public class VrmBiomeSelectScreen extends Screen {
         }
 
         // 回显当前配置：空列表 = 全部
-        List<? extends String> saved = VrmCreatureConfig.SPAWN_BIOMES.get();
+        List<String> saved = new ArrayList<>(draft.selectedBiomes);
         if (saved == null || saved.isEmpty()) {
             selected.addAll(allBiomes);
         } else {
@@ -137,7 +136,9 @@ public class VrmBiomeSelectScreen extends Screen {
         if (chosen.size() == allBiomes.size()) {
             chosen.clear();
         }
-        Network.sendToServer(new VrmBiomePacket(chosen));
+        // 草稿模式：写入草稿，随生成包统一发送
+        draft.selectedBiomes.clear();
+        draft.selectedBiomes.addAll(chosen);
         Minecraft.getInstance().setScreen(parent);
     }
 

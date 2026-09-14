@@ -13,18 +13,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 客户端「设置某模型刷新群系白名单」请求包。
- * 写入该模型对应 JSON 的 spawnBiomes；biomeIds 为空列表表示全部群系。
+ * 客户端「保存某模型掉落物配置」请求包。
+ * 写入该模型对应 JSON 的 loot；lootLines 格式：物品ID;数量;概率（如 "minecraft:diamond;1;0.3"）。
  */
-public record VrmBiomePacket(String modelName, List<String> biomeIds) implements CustomPacketPayload {
+public record VrmLootPacket(String modelName, List<String> lootLines) implements CustomPacketPayload {
 
-    public static final Type<VrmBiomePacket> TYPE =
-            new Type<>(ResourceLocation.fromNamespaceAndPath(VrmCreature.MODID, "vrm_biome"));
+    public static final Type<VrmLootPacket> TYPE =
+            new Type<>(ResourceLocation.fromNamespaceAndPath(VrmCreature.MODID, "vrm_loot"));
 
-    public static final StreamCodec<ByteBuf, VrmBiomePacket> CODEC = StreamCodec.composite(
-            ByteBufCodecs.STRING_UTF8, VrmBiomePacket::modelName,
-            ByteBufCodecs.collection(ArrayList::new, ByteBufCodecs.STRING_UTF8), VrmBiomePacket::biomeIds,
-            VrmBiomePacket::new
+    public static final StreamCodec<ByteBuf, VrmLootPacket> CODEC = StreamCodec.composite(
+            ByteBufCodecs.STRING_UTF8, VrmLootPacket::modelName,
+            ByteBufCodecs.collection(ArrayList::new, ByteBufCodecs.STRING_UTF8), VrmLootPacket::lootLines,
+            VrmLootPacket::new
     );
 
     @Override
@@ -32,14 +32,14 @@ public record VrmBiomePacket(String modelName, List<String> biomeIds) implements
         return TYPE;
     }
 
-    public static void handle(VrmBiomePacket packet, IPayloadContext ctx) {
+    public static void handle(VrmLootPacket packet, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!ctx.flow().isServerbound()) {
                 return;
             }
             VrmModelConfig.Data d = VrmModelConfig.load(packet.modelName);
-            d.spawnBiomes.clear();
-            d.spawnBiomes.addAll(packet.biomeIds);
+            d.loot.clear();
+            d.loot.addAll(packet.lootLines);
             VrmModelConfig.save(packet.modelName, d);
         });
     }
