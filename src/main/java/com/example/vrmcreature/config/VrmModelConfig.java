@@ -17,7 +17,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Random;
+import net.minecraft.util.RandomSource;
 import java.util.stream.Stream;
 
 /**
@@ -35,7 +35,7 @@ public class VrmModelConfig {
     /** 配置根目录：<游戏根目录>/versions/<版本名>/vrmcreature/config */
     public static Path configDir() {
         Path gameDir = FMLPaths.GAMEDIR.get();
-        String version = FMLLoader.getGameVersion();
+        String version = FMLLoader.versionInfo().mcVersion();
         return gameDir.resolve("versions").resolve(version)
                 .resolve(VrmCreature.MODID).resolve("config");
     }
@@ -77,6 +77,14 @@ public class VrmModelConfig {
 
     private static Path fileOf(String modelName) {
         return configDir().resolve(modelName + ".json");
+    }
+
+    /** 指定模型是否已有独立配置文件（存在则视为已配置）。 */
+    public static boolean isConfigured(String modelName) {
+        if (modelName == null || modelName.isEmpty()) {
+            modelName = "model";
+        }
+        return Files.isRegularFile(fileOf(modelName));
     }
 
     /** 读取指定模型的配置；文件不存在或解析失败时返回默认配置。 */
@@ -160,7 +168,7 @@ public class VrmModelConfig {
      * 自然刷新选模型：从「允许当前群系」的已配置模型中按 spawnWeight 权重随机选一个。
      * 权重越大越容易被选中；无任何可用模型时返回 null。
      */
-    public static String pickModelForBiome(String biomeId, Random random) {
+    public static String pickModelForBiome(String biomeId, RandomSource random) {
         List<String> candidates = new ArrayList<>();
         List<Integer> weights = new ArrayList<>();
         int total = 0;

@@ -10,8 +10,10 @@ import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
@@ -28,12 +30,15 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.common.NeoForge;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * VRM 自定义生物实体。
  * 每个模型对应一份独立配置（versions/<版本名>/vrmcreature/config/<模型名>.json），
  * 实体按其 modelName 读取对应配置：阵营、基础属性、行为 AI、掉落物。
  */
-public class VrmMob extends Mob {
+public class VrmMob extends PathfinderMob {
 
     /** 模型名（对应 <游戏目录>/versions/<版本名>/vrmcreature/vrm/<name>.vrm 或 .glb），默认 model */
     private static final EntityDataAccessor<String> DATA_MODEL_NAME =
@@ -96,20 +101,21 @@ public class VrmMob extends Mob {
         }
         this.setHealth((float) d.health);
         // 重新注册行为 AI（按该模型配置）
-        this.goalSelector.removeAllGoals();
-        this.targetSelector.removeAllGoals();
+        this.goalSelector.removeAllGoals(g -> true);
+        this.targetSelector.removeAllGoals(g -> true);
         this.registerGoals();
     }
 
     /** 死亡掉落：按该模型配置的概率掉落对应物品（每次独立判定） */
     @Override
-    protected void dropCustomDeathLoot(DamageSource source, int lootingLevel, boolean recentlyHit) {
-        super.dropCustomDeathLoot(source, lootingLevel, recentlyHit);
+    protected void dropCustomDeathLoot(ServerLevel level, DamageSource source, boolean recentlyHit) {
+        super.dropCustomDeathLoot(level, source, recentlyHit);
         VrmModelConfig.Data d = config();
         // 掉落钩子：允许依赖方修改掉落表或取消默认掉落
         List<String> lootLines = new ArrayList<>(d.loot);
         VrmLootDropEvent event = new VrmLootDropEvent(this, lootLines);
-        if (NeoForge.EVENT_BUS.post(event)) {
+        NeoForge.EVENT_BUS.post(event);
+        if (event.isCanceled()) {
             return;
         }
         for (String line : lootLines) {
@@ -160,7 +166,8 @@ public class VrmMob extends Mob {
 
         // 行为钩子：依赖方可取消默认 AI，完全自定义注册 goal / target
         VrmBehaviorEvent behaviorEvent = new VrmBehaviorEvent(this, behavior, hostile);
-        if (NeoForge.EVENT_BUS.post(behaviorEvent)) {
+        NeoForge.EVENT_BUS.post(behaviorEvent);
+        if (behaviorEvent.isCanceled()) {
             return;
         }
 

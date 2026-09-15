@@ -5,6 +5,7 @@ import com.example.vrmcreature.config.VrmModelConfig;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -29,9 +30,14 @@ public record VrmSavePacket(String modelName, int faction, double health, double
             ByteBufCodecs.DOUBLE, VrmSavePacket::health,
             ByteBufCodecs.DOUBLE, VrmSavePacket::damage,
             ByteBufCodecs.DOUBLE, VrmSavePacket::speed,
-            ByteBufCodecs.VAR_INT, VrmSavePacket::behavior,
-            ByteBufCodecs.VAR_INT, VrmSavePacket::animPref,
-            VrmSavePacket::new
+            StreamCodec.<ByteBuf, int[], Integer, Integer>composite(
+                    ByteBufCodecs.VAR_INT, ba -> ba[0],
+                    ByteBufCodecs.VAR_INT, ba -> ba[1],
+                    (b, a) -> new int[]{b, a}
+            ),
+            p -> new int[]{p.behavior(), p.animPref()},
+            (modelName, faction, health, damage, speed, ba) ->
+                    new VrmSavePacket(modelName, faction, health, damage, speed, ba[0], ba[1])
     );
 
     @Override
@@ -41,7 +47,7 @@ public record VrmSavePacket(String modelName, int faction, double health, double
 
     public static void handle(VrmSavePacket packet, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
-            if (!ctx.flow().isServerbound()) {
+            if (ctx.flow() != PacketFlow.SERVERBOUND) {
                 return;
             }
             VrmModelConfig.Data d = VrmModelConfig.load(packet.modelName);

@@ -1,7 +1,7 @@
 package com.example.vrmcreature.api.event;
 
 import com.example.vrmcreature.entity.VrmMob;
-import net.neoforged.bus.api.Cancelable;
+import net.neoforged.bus.api.ICancellableEvent;
 import net.neoforged.bus.api.Event;
 
 import java.util.List;
@@ -13,8 +13,7 @@ import java.util.List;
  *  - 修改 {@link #getLoot()} 返回的列表（增删掉落行，行格式：物品ID;数量;概率，如 minecraft:diamond;1;0.3）；
  *  - {@link #setCanceled(boolean)} 完全取消默认掉落，自行实现掉落逻辑。
  */
-@Cancelable
-public class VrmLootDropEvent extends Event {
+public class VrmLootDropEvent extends Event implements ICancellableEvent {
 
     private final VrmMob mob;
     private final List<String> loot;

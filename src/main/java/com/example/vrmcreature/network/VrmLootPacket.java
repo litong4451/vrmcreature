@@ -5,6 +5,7 @@ import com.example.vrmcreature.config.VrmModelConfig;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -34,7 +35,7 @@ public record VrmLootPacket(String modelName, List<String> lootLines) implements
 
     public static void handle(VrmLootPacket packet, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
-            if (!ctx.flow().isServerbound()) {
+            if (ctx.flow() != PacketFlow.SERVERBOUND) {
                 return;
             }
             VrmModelConfig.Data d = VrmModelConfig.load(packet.modelName);

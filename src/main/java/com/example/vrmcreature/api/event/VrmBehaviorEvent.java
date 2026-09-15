@@ -1,7 +1,7 @@
 package com.example.vrmcreature.api.event;
 
 import com.example.vrmcreature.entity.VrmMob;
-import net.neoforged.bus.api.Cancelable;
+import net.neoforged.bus.api.ICancellableEvent;
 import net.neoforged.bus.api.Event;
 
 /**
@@ -16,8 +16,7 @@ import net.neoforged.bus.api.Event;
  * {@link #getBehavior()} 为模型配置中的行为模式（0 静止 / 1 巡逻 / 2 跟随 / 3 主动攻击），
  * {@link #isHostile()} 为该模型的阵营是否敌对。
  */
-@Cancelable
-public class VrmBehaviorEvent extends Event {
+public class VrmBehaviorEvent extends Event implements ICancellableEvent {
 
     private final VrmMob mob;
     private final int behavior;

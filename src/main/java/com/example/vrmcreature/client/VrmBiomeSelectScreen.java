@@ -40,15 +40,14 @@ public class VrmBiomeSelectScreen extends Screen {
 
         // 收集全部已注册生物群系
         var level = Minecraft.getInstance().level;
-        var registryOpt = level != null ? level.registryAccess().registry(Registries.BIOME) : Optional.empty();
+        var registryOpt = level != null ? level.registryAccess().registry(Registries.BIOME)
+                : Optional.<net.minecraft.core.Registry<Biome>>empty();
         if (registryOpt.isPresent()) {
             var registry = registryOpt.get();
             List<String> ids = new ArrayList<>();
-            for (ResourceKey<Biome> key : registry.keySet()) {
+            for (ResourceKey<Biome> key : registry.registryKeySet()) {
                 String id = key.location().toString();
-                String name = registry.get(key).map(h -> h.value())
-                        .map(Biome::getLocalizedName)
-                        .orElse("");
+                String name = key.location().toString();
                 ids.add(id + "\u0000" + name); // 排序用内部拼接
             }
             ids.sort(Comparator.comparing(s -> s.split("\u0000")[1]));

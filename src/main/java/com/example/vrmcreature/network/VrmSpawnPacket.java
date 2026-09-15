@@ -7,6 +7,7 @@ import com.example.vrmcreature.entity.VrmMob;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -36,7 +37,7 @@ public record VrmSpawnPacket(int count, String modelName) implements CustomPacke
 
     public static void handle(VrmSpawnPacket packet, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
-            if (ctx.flow().isServerbound() && ctx.player() instanceof ServerPlayer player) {
+            if (ctx.flow() == PacketFlow.SERVERBOUND && ctx.player() instanceof ServerPlayer player) {
                 Level level = player.level();
                 String modelName = (packet.modelName == null || packet.modelName.isEmpty())
                         ? "model" : packet.modelName;

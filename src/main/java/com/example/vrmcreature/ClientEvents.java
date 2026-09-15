@@ -19,7 +19,7 @@ import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
  * 打开设置不再需要输入命令，按快捷键即可。
  * 默认不绑定任何按键，避免冲突；请到 设置 → 控制 → VRM 生物 中自行指定按键。
  */
-@EventBusSubscriber(modid = VrmCreature.MODID, bus = EventBusSubscriber.Bus.MOD, value = net.neoforged.fml.common.Mod.EventBusSubscriber.Side.CLIENT)
+@EventBusSubscriber(modid = VrmCreature.MODID, bus = EventBusSubscriber.Bus.MOD, value = net.neoforged.api.distmarker.Dist.CLIENT)
 public class ClientEvents {
 
     /** 打开 VRM 生物设置界面的快捷键，默认未绑定（可到控制设置中指定，避免按键冲突） */
@@ -47,7 +47,7 @@ public class ClientEvents {
     }
 
     /** 游戏 tick 轮询快捷键（GAME bus, CLIENT 侧） */
-    @EventBusSubscriber(modid = VrmCreature.MODID, bus = EventBusSubscriber.Bus.GAME, value = net.neoforged.fml.common.Mod.EventBusSubscriber.Side.CLIENT)
+    @EventBusSubscriber(modid = VrmCreature.MODID, bus = EventBusSubscriber.Bus.GAME, value = net.neoforged.api.distmarker.Dist.CLIENT)
     public static class KeyHandler {
         @SubscribeEvent
         public static void onClientTick(ClientTickEvent.Post event) {

@@ -12,9 +12,9 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
-import net.neoforged.neoforge.event.entity.EntitySpawnEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent;
-import net.neoforged.neoforge.event.entity.living.MobSpawnEvent;
+import net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent;
 
 /**
  * 模组事件总线：
@@ -50,7 +50,7 @@ public class ModEvents {
     @EventBusSubscriber(modid = VrmCreature.MODID, bus = EventBusSubscriber.Bus.GAME)
     public static class SpawnHandler {
         @SubscribeEvent
-        public static void onFinalizeSpawn(MobSpawnEvent.FinalizeSpawn event) {
+        public static void onFinalizeSpawn(FinalizeSpawnEvent event) {
             if (!(event.getEntity() instanceof VrmMob mob)) {
                 return;
             }
@@ -70,7 +70,8 @@ public class ModEvents {
             }
             // 生成钩子 1：选中模型后触发，依赖方可替换模型或取消本次刷新
             VrmModelPickEvent pickEvent = new VrmModelPickEvent(mob, biomeId, type, model);
-            if (NeoForge.EVENT_BUS.post(pickEvent)) {
+            NeoForge.EVENT_BUS.post(pickEvent);
+            if (pickEvent.isCanceled()) {
                 return;
             }
             String chosen = pickEvent.getModelName();
@@ -87,7 +88,7 @@ public class ModEvents {
          * （自然刷新链路已在 FinalizeSpawn 中 setModelName，不会重复处理）
          */
         @SubscribeEvent
-        public static void onEntitySpawn(EntitySpawnEvent event) {
+        public static void onEntitySpawn(EntityJoinLevelEvent event) {
             if (!(event.getEntity() instanceof VrmMob mob)) {
                 return;
             }

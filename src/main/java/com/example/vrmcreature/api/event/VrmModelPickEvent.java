@@ -2,7 +2,7 @@ package com.example.vrmcreature.api.event;
 
 import com.example.vrmcreature.entity.VrmMob;
 import net.minecraft.world.entity.MobSpawnType;
-import net.neoforged.bus.api.Cancelable;
+import net.neoforged.bus.api.ICancellableEvent;
 import net.neoforged.bus.api.Event;
 
 /**
@@ -16,8 +16,7 @@ import net.neoforged.bus.api.Event;
  *  - {@link #setModelName(String)} 替换将要使用的模型；
  *  - {@link #setCanceled(boolean)} 取消本次自然刷新（该生物将不会生成）。
  */
-@Cancelable
-public class VrmModelPickEvent extends Event {
+public class VrmModelPickEvent extends Event implements ICancellableEvent {
 
     private final VrmMob mob;
     private final String biomeId;

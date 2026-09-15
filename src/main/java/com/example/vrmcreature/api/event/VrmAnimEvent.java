@@ -2,7 +2,7 @@ package com.example.vrmcreature.api.event;
 
 import com.example.vrmcreature.entity.VrmMob;
 import com.example.vrmcreature.entity.client.VrmCreatureel;
-import net.neoforged.bus.api.Cancelable;
+import net.neoforged.bus.api.ICancellableEvent;
 import net.neoforged.bus.api.Event;
 
 /**
@@ -16,8 +16,7 @@ import net.neoforged.bus.api.Event;
  *
  * 不取消且不指定时，维持默认的自动选择（移动→walk / 攻击→attack / 静止→idle 或按动作偏好）。
  */
-@Cancelable
-public class VrmAnimEvent extends Event {
+public class VrmAnimEvent extends Event implements ICancellableEvent {
 
     private final VrmMob mob;
     private final VrmCreatureel model;

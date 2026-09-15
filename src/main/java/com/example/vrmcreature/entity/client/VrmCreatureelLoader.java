@@ -10,8 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
@@ -119,12 +119,13 @@ public class VrmCreatureelLoader {
             return new VrmCreatureel(0);
         }
 
-        try (InputStream in = Files.newInputStream(path)) {
-            GltfModel gltf = new GltfModelReader().read(in);
+        try {
+            GltfModel gltf = new GltfModelReader().read(path);
 
             // 0) 检测 VRM 版本（1.0 扩展名 "VRM"，2.0 扩展名 "VRMC_vrm"）
             String vrmVersion = "glTF";
-            List<String> extUsed = gltf.getExtensionsUsed();
+            List<String> extUsed = gltf.getExtensionsModel() != null
+                    ? gltf.getExtensionsModel().getExtensionsUsed() : null;
             if (extUsed != null) {
                 if (extUsed.contains("VRMC_vrm")) {
                     vrmVersion = "VRM 2.0";
@@ -150,24 +151,24 @@ public class VrmCreatureelLoader {
                 nodeIndex.put(allNodes.get(i), i);
                 VrmCreatureel.Node n = new VrmCreatureel.Node();
                 n.index = i;
-                NodeTransform t = allNodes.get(i).getLocalTransform();
-                if (t != null) {
-                    if (t.hasTranslation()) {
-                        n.translation[0] = t.getTranslationX();
-                        n.translation[1] = t.getTranslationY();
-                        n.translation[2] = t.getTranslationZ();
-                    }
-                    if (t.hasRotation()) {
-                        n.rotation[0] = t.getRotationX();
-                        n.rotation[1] = t.getRotationY();
-                        n.rotation[2] = t.getRotationZ();
-                        n.rotation[3] = t.getRotationW();
-                    }
-                    if (t.hasScale()) {
-                        n.scale[0] = t.getScaleX();
-                        n.scale[1] = t.getScaleY();
-                        n.scale[2] = t.getScaleZ();
-                    }
+                float[] tr = allNodes.get(i).getTranslation();
+                if (tr != null && tr.length >= 3) {
+                    n.translation[0] = tr[0];
+                    n.translation[1] = tr[1];
+                    n.translation[2] = tr[2];
+                }
+                float[] rt = allNodes.get(i).getRotation();
+                if (rt != null && rt.length >= 4) {
+                    n.rotation[0] = rt[0];
+                    n.rotation[1] = rt[1];
+                    n.rotation[2] = rt[2];
+                    n.rotation[3] = rt[3];
+                }
+                float[] sc = allNodes.get(i).getScale();
+                if (sc != null && sc.length >= 3) {
+                    n.scale[0] = sc[0];
+                    n.scale[1] = sc[1];
+                    n.scale[2] = sc[2];
                 }
                 model.nodes.add(n);
             }
@@ -190,7 +191,7 @@ public class VrmCreatureelLoader {
                 }
                 AccessorModel ibm = skin.getInverseBindMatrices();
                 if (ibm != null) {
-                    FloatBuffer buf = ibm.read();
+                    FloatBuffer buf = readFloats(ibm);
                     for (int i = 0; i < model.inverseBindMatrices.length && buf.hasRemaining(); i++) {
                         model.inverseBindMatrices[i] = buf.get();
                     }
@@ -203,42 +204,38 @@ public class VrmCreatureelLoader {
                     VrmCreatureel.MeshData md = new VrmCreatureel.MeshData();
                     AccessorModel pos = prim.getAttributes().get("POSITION");
                     if (pos == null) continue;
-                    FloatBuffer posBuf = pos.read();
+                    FloatBuffer posBuf = readFloats(pos);
                     md.positions = new float[posBuf.remaining()];
                     posBuf.get(md.positions);
 
                     AccessorModel normal = prim.getAttributes().get("NORMAL");
                     if (normal != null) {
-                        FloatBuffer nb = normal.read();
+                        FloatBuffer nb = readFloats(normal);
                         md.normals = new float[nb.remaining()];
                         nb.get(md.normals);
                     }
 
                     AccessorModel joints = prim.getAttributes().get("JOINTS_0");
                     if (joints != null) {
-                        FloatBuffer jb = joints.read();
-                        md.joints = new int[jb.remaining()];
-                        for (int i = 0; i < md.joints.length; i++) {
-                            md.joints[i] = (int) jb.get();
-                        }
+                        md.joints = readInts(joints);
                     }
                     AccessorModel weights = prim.getAttributes().get("WEIGHTS_0");
                     if (weights != null) {
-                        FloatBuffer wb = weights.read();
+                        FloatBuffer wb = readFloats(weights);
                         md.weights = new float[wb.remaining()];
                         wb.get(md.weights);
                     }
 
                     AccessorModel uv = prim.getAttributes().get("TEXCOORD_0");
                     if (uv != null) {
-                        FloatBuffer ub = uv.read();
+                        FloatBuffer ub = readFloats(uv);
                         md.uvs = new float[ub.remaining()];
                         ub.get(md.uvs);
                     }
 
                     AccessorModel idx = prim.getIndices();
                     if (idx != null) {
-                        md.indices = toIntArray(idx.read());
+                        md.indices = readInts(idx);
                     } else {
                         md.indices = new int[md.positions.length / 3];
                         for (int i = 0; i < md.indices.length; i++) md.indices[i] = i;
@@ -252,22 +249,22 @@ public class VrmCreatureelLoader {
             for (AnimationModel anim : gltf.getAnimationModels()) {
                 VrmCreatureel.AnimationClip clip = new VrmCreatureel.AnimationClip();
                 clip.name = anim.getName() != null ? anim.getName() : "";
-                for (AnimationChannelModel channel : anim.getChannels()) {
+                for (AnimationModel.Channel channel : anim.getChannels()) {
                     VrmCreatureel.AnimationChannel c = new VrmCreatureel.AnimationChannel();
-                    NodeModel target = channel.getTarget();
+                    NodeModel target = channel.getNodeModel();
                     Integer ti = target != null ? nodeIndex.get(target) : null;
                     c.nodeIndex = ti != null ? ti : -1;
-                    c.path = channel.getTargetPath();
-                    AnimationSamplerModel sampler = channel.getSampler();
+                    c.path = channel.getPath();
+                    AnimationModel.Sampler sampler = channel.getSampler();
                     if (sampler == null) continue;
-                    c.interpolation = sampler.getInterpolation();
+                    c.interpolation = sampler.getInterpolation().name();
                     AccessorModel input = sampler.getInput();
                     AccessorModel output = sampler.getOutput();
                     if (input == null || output == null) continue;
-                    FloatBuffer inBuf = input.read();
+                    FloatBuffer inBuf = readFloats(input);
                     c.times = new float[inBuf.remaining()];
                     inBuf.get(c.times);
-                    FloatBuffer outBuf = output.read();
+                    FloatBuffer outBuf = readFloats(output);
                     c.values = new float[outBuf.remaining()];
                     outBuf.get(c.values);
                     if (c.times.length > 0) {
@@ -301,42 +298,10 @@ public class VrmCreatureelLoader {
      * 若贴图为内嵌数据（GLB buffer 或 data URI）则返回其字节，否则返回 null。
      */
     private static byte[] extractTextureBytes(GltfModel gltf) {
-        // 1) 标准材质路径（VRM 2.0 / glTF）
-        for (MaterialModel mat : gltf.getMaterialModels()) {
-            TextureModel tex = mat.getBaseColorTexture();
-            if (tex == null) {
-                tex = mat.getDiffuseTexture(); // glTF 1.0 兼容
-            }
-            if (tex == null) continue;
-            byte[] data = imageBytes(tex.getImage());
+        // jgltf 2.0.4：遍历纹理列表，返回第一张可用的图片字节
+        for (TextureModel tex : gltf.getTextureModels()) {
+            byte[] data = imageBytes(tex.getImageModel());
             if (data != null) return data;
-        }
-
-        // 2) VRM 0.x 扩展材质路径（MToon：materialProperties[].textures[]）
-        try {
-            Map<String, Object> ext = gltf.getExtensions();
-            if (ext != null) {
-                Object vrmExt = ext.get("VRM");
-                if (vrmExt instanceof Map<?, ?> vrm) {
-                    Object matProps = vrm.get("materialProperties");
-                    if (matProps instanceof List<?> list && !list.isEmpty()) {
-                        Object first = list.get(0);
-                        if (first instanceof Map<?, ?> mp) {
-                            Object textures = mp.get("textures");
-                            if (textures instanceof List<?> tList && !tList.isEmpty()) {
-                                int imgIdx = ((Number) tList.get(0)).intValue();
-                                List<ImageModel> images = gltf.getImageModels();
-                                if (imgIdx >= 0 && imgIdx < images.size()) {
-                                    byte[] data = imageBytes(images.get(imgIdx));
-                                    if (data != null) return data;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (RuntimeException e) {
-            LOGGER.warn("Failed to extract VRM 0.x MToon texture: {}", e.getMessage());
         }
         return null;
     }
@@ -344,8 +309,12 @@ public class VrmCreatureelLoader {
     /** 取图片字节（GLB buffer 内嵌优先，其次 data URI） */
     private static byte[] imageBytes(ImageModel img) {
         if (img == null) return null;
-        byte[] data = img.getImageData();
-        if (data != null && data.length > 0) return data;
+        java.nio.ByteBuffer data = img.getImageData();
+        if (data != null && data.hasRemaining()) {
+            byte[] bytes = new byte[data.remaining()];
+            data.get(bytes);
+            return bytes;
+        }
         String uri = img.getUri();
         if (uri != null && uri.startsWith("data:")) {
             return decodeDataUri(uri);
@@ -372,26 +341,36 @@ public class VrmCreatureelLoader {
         }
     }
 
-    private static int[] toIntArray(java.nio.Buffer buffer) {
-        if (buffer instanceof IntBuffer ib) {
-            IntBuffer dup = ib.duplicate();
-            int[] out = new int[dup.remaining()];
-            dup.get(out);
+    /** 将访问器数据读为 FloatBuffer（本机字节序）。 */
+    private static FloatBuffer readFloats(AccessorModel acc) {
+        if (acc == null) return null;
+        AccessorFloatData d = AccessorDatas.createFloat(acc);
+        return d.createByteBuffer().order(ByteOrder.nativeOrder()).asFloatBuffer();
+    }
+
+    /** 将访问器数据读为 int[]（兼容 UNSIGNED_BYTE/SHORT/INT 与 FLOAT）。 */
+    private static int[] readInts(AccessorModel acc) {
+        if (acc == null) return null;
+        AccessorData d = AccessorDatas.create(acc);
+        java.nio.ByteBuffer bb = d.createByteBuffer().duplicate().order(ByteOrder.nativeOrder());
+        if (d instanceof de.javagl.jgltf.model.AccessorIntData) {
+            IntBuffer ib = bb.asIntBuffer();
+            int[] out = new int[ib.remaining()];
+            ib.get(out);
             return out;
-        } else if (buffer instanceof ShortBuffer sb) {
-            ShortBuffer dup = sb.duplicate();
-            int[] out = new int[dup.remaining()];
-            for (int i = 0; i < out.length; i++) out[i] = dup.get() & 0xFFFF;
+        } else if (d instanceof de.javagl.jgltf.model.AccessorShortData) {
+            ShortBuffer sb = bb.asShortBuffer();
+            int[] out = new int[sb.remaining()];
+            for (int i = 0; i < out.length; i++) out[i] = sb.get() & 0xFFFF;
             return out;
-        } else if (buffer instanceof ByteBuffer bb) {
-            ByteBuffer dup = bb.duplicate();
-            int[] out = new int[dup.remaining()];
-            for (int i = 0; i < out.length; i++) out[i] = dup.get() & 0xFF;
+        } else if (d instanceof de.javagl.jgltf.model.AccessorByteData) {
+            int[] out = new int[bb.remaining()];
+            for (int i = 0; i < out.length; i++) out[i] = bb.get() & 0xFF;
             return out;
-        } else if (buffer instanceof FloatBuffer fb) {
-            FloatBuffer dup = fb.duplicate();
-            int[] out = new int[dup.remaining()];
-            for (int i = 0; i < out.length; i++) out[i] = (int) dup.get();
+        } else if (d instanceof AccessorFloatData) {
+            FloatBuffer fb = bb.asFloatBuffer();
+            int[] out = new int[fb.remaining()];
+            for (int i = 0; i < out.length; i++) out[i] = (int) fb.get();
             return out;
         }
         return new int[0];

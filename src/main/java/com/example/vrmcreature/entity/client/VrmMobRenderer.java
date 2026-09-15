@@ -81,7 +81,7 @@ public class VrmMobRenderer extends EntityRenderer<VrmMob> {
                     String safe = sanitize(name);
                     loc = ResourceLocation.fromNamespaceAndPath(VrmCreature.MODID,
                             "textures/vrm/" + safe + "_embedded");
-                    Minecraft.getInstance().getTextureManager().registerTexture(loc, dyn);
+                    Minecraft.getInstance().getTextureManager().register(loc, dyn);
                     LOGGER.info("Registered embedded texture for model '{}' {}x{}", name, img.getWidth(), img.getHeight());
                 }
             } catch (IOException | RuntimeException e) {
@@ -161,7 +161,8 @@ public class VrmMobRenderer extends EntityRenderer<VrmMob> {
 
         // 动作钩子：依赖方可覆盖本帧播放的动画（指定片段 / 取消默认选择）
         VrmAnimEvent event = new VrmAnimEvent(entity, model, best);
-        if (NeoForge.EVENT_BUS.post(event)) {
+        NeoForge.EVENT_BUS.post(event);
+        if (event.isCanceled()) {
             // 已取消默认动画选择：返回监听者指定片段（可能为 null，即本帧不播放动画）
             return event.getClip();
         }
