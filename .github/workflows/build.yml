@@ -32,6 +32,13 @@ jobs:
           find build/libs -maxdepth 1 -name '*.jar' \
             ! -name '*sources*' ! -name '*javadoc*' ! -name '*-api*' ! -name '*-dev*' \
             -exec cp {} release/ \;
+          # tag 触发时按 tag 版本重命名 jar（去掉 v 前缀），如 v1.0.2 -> vrmcreature-1.0.2.jar
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VER="${GITHUB_REF_NAME#v}"
+            for f in release/*.jar; do
+              mv "$f" "release/vrmcreature-${VER}.jar"
+            done
+          fi
 
       - name: Upload jar (artifact)
         uses: actions/upload-artifact@v4
