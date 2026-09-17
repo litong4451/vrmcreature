@@ -47,7 +47,7 @@ public class VrmCreateScreen extends Screen {
         int x = (this.width - w) / 2;
         int y = 30;
 
-        addRenderableWidget(Button.builder(Component.literal("选择模型文件：" + draft.modelName), b ->
+        addRenderableWidget(Button.builder(Component.literal("选择模型文件：" + VrmCreatureelLoader.displayName(draft.modelName)), b ->
                         Minecraft.getInstance().setScreen(new VrmModelSelectScreen(this, draft)))
                 .bounds(x, y, w, 20).build());
         y += 28;

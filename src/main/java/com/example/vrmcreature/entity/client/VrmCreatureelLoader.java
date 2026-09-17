@@ -91,6 +91,15 @@ public class VrmCreatureelLoader {
         return dir.resolve(name + ".glb");
     }
 
+    /** 模型显示名：优先返回配置中的中文显示名，未配置时返回英文模型名。 */
+    public static String displayName(String modelName) {
+        if (modelName == null || modelName.isEmpty()) {
+            modelName = DEFAULT_MODEL;
+        }
+        String cn = com.example.vrmcreature.config.VrmModelConfig.load(modelName).displayName;
+        return (cn != null && !cn.isEmpty()) ? cn : modelName;
+    }
+
     /**
      * 按模型名加载模型。指定模型不存在时回退到第一个可用模型；
      * 目录为空时回退默认 "model"（即使缺失也会返回空模型，由渲染端跳过）。

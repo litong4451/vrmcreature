@@ -196,6 +196,8 @@ public class VrmModelConfig {
 
     /** 单个模型的完整配置数据。 */
     public static class Data {
+        /** 显示名（中文名，可选）；为空时界面显示英文模型名 */
+        public String displayName = "";
         /** 是否已创建并锁定属性（锁定后 GUI 不可再改） */
         public boolean locked = false;
         /** 是否允许自然刷新 */
