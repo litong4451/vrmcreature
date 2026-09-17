@@ -104,7 +104,9 @@ public class VrmModelImportScreen extends Screen {
             VrmModelConfig.save(eng, d);
         }
 
-        draft.modelName = eng;
+        if (draft != null) {
+            draft.modelName = eng;
+        }
         Minecraft.getInstance().setScreen(parent);
     }
 
