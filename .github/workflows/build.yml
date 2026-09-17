@@ -36,7 +36,11 @@ jobs:
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             VER="${GITHUB_REF_NAME#v}"
             for f in release/*.jar; do
-              mv "$f" "release/vrmcreature-${VER}.jar"
+              base="$(basename "$f")"
+              target="release/vrmcreature-${VER}.jar"
+              if [[ "$base" != "vrmcreature-${VER}.jar" ]]; then
+                mv "$f" "$target"
+              fi
             done
           fi
 
